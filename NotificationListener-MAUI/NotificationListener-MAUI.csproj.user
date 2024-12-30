@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <AndroidDesignerPreferredDevice>pixel_2_xl</AndroidDesignerPreferredDevice>
+    <SelectedDevice>OnePlus KB2000</SelectedDevice>
+    <SelectedPlatformGroup>PhysicalDevice</SelectedPlatformGroup>
+    <ActiveDebugProfile>OnePlus KB2000 (Android 14.0 - API 34)</ActiveDebugProfile>
+    <AndroidDesignerPreferredTheme>AppTheme</AndroidDesignerPreferredTheme>
+  </PropertyGroup>
+</Project>
