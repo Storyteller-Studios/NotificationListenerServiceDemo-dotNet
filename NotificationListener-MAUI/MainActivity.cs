@@ -8,6 +8,7 @@ using Java.Lang;
 using MediaController = Android.Media.Session.MediaController;
 using AndroidX.Core.App;
 using Android.Support.V4.App;
+
 namespace NotificationListener_MAUI
 {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -21,6 +22,8 @@ namespace NotificationListener_MAUI
         Button? MoveNext;
         Button? MovePrevious;
         Button? PausePlay;
+        Button? PositionSet;
+        EditText? PositionBox;
         MediaController? Controller;
         MediaController.TransportControls? TransportControls;
         Timer SessionTimer = new Timer() { AutoReset = true, Enabled = true, Interval = 100 };
@@ -40,9 +43,12 @@ namespace NotificationListener_MAUI
             MoveNext = FindViewById<Button>(Resource.Id.MoveNext);
             MovePrevious = FindViewById<Button>(Resource.Id.MovePrevious);
             PausePlay = FindViewById<Button>(Resource.Id.PausePlay);
-            MoveNext!.Click += MoveNext_Click!;
-            MovePrevious!.Click += MovePrevious_Click!;
-            PausePlay!.Click += PausePlay_Click!;
+            PositionSet = FindViewById<Button>(Resource.Id.PositionSet);
+            PositionBox = FindViewById<EditText>(Resource.Id.PositionBox);
+            MoveNext!.Click += MoveNext_Click;
+            MovePrevious!.Click += MovePrevious_Click;
+            PausePlay!.Click += PausePlay_Click;
+            PositionSet!.Click += PositionSet_Click;
             MediaSessionInstance.Instance = this;
             var permitted = NotificationManagerCompat.GetEnabledListenerPackages(this).Contains(PackageName!);
             if (!permitted)
@@ -59,6 +65,16 @@ namespace NotificationListener_MAUI
                 CreateSessionFromMediaSessionManager();
             }
         }
+
+        private void PositionSet_Click(object? sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(PositionBox?.Text))
+            {
+                var succeed = int.TryParse(PositionBox.Text, out int result);
+                TransportControls?.SeekTo(succeed ? result : 0);
+            }
+        }
+
         private void RequestReBind()
         {
             if (Build.VERSION.SdkInt >= BuildVersionCodes.N)
@@ -73,7 +89,7 @@ namespace NotificationListener_MAUI
                 PackageManager.SetComponentEnabledSetting(NotificationListenerServiceComponentName!, Android.Content.PM.ComponentEnabledState.Enabled, Android.Content.PM.ComponentEnableOption.DontKillApp);
             }
         }
-        private void PausePlay_Click(object sender, System.EventArgs e)
+        private void PausePlay_Click(object? sender, System.EventArgs e)
         {
             if (Controller?.PlaybackState?.State == PlaybackStateCode.Paused)
             {
@@ -85,12 +101,12 @@ namespace NotificationListener_MAUI
             }
         }
 
-        private void MovePrevious_Click(object sender, System.EventArgs e)
+        private void MovePrevious_Click(object? sender, System.EventArgs e)
         {
             TransportControls?.SkipToPrevious();
         }
 
-        private void MoveNext_Click(object sender, System.EventArgs e)
+        private void MoveNext_Click(object? sender, System.EventArgs e)
         {
             TransportControls?.SkipToNext();
         }

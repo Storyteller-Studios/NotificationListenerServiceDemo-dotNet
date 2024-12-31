@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Net.WebSockets;
 using Android.App;
 using Android.Content;
 using Android.Media;
@@ -25,6 +27,8 @@ namespace NotificationListener
         Button MoveNext;
         Button MovePrevious;
         Button PausePlay;
+        Button PositionSet;
+        EditText PositionBox;
         MediaController Controller;
         MediaController.TransportControls TransportControls;
         Timer SessionTimer = new Timer() { AutoReset = true, Enabled = true, Interval = 100 };
@@ -43,9 +47,12 @@ namespace NotificationListener
             MoveNext = FindViewById<Button>(Resource.Id.MoveNext);
             MovePrevious = FindViewById<Button>(Resource.Id.MovePrevious);
             PausePlay = FindViewById<Button>(Resource.Id.PausePlay);
+            PositionSet = FindViewById<Button>(Resource.Id.PositionSet);
+            PositionBox = FindViewById<EditText>(Resource.Id.PositionBox);
             MoveNext.Click += MoveNext_Click;
             MovePrevious.Click += MovePrevious_Click;
             PausePlay.Click += PausePlay_Click;
+            PositionSet.Click += PositionSet_Click;
             MediaSessionInstance.Instance = this;
             var permitted = NotificationManagerCompat.GetEnabledListenerPackages(this).Contains(PackageName);
             if (!permitted)
@@ -62,6 +69,16 @@ namespace NotificationListener
                 CreateSessionFromMediaSessionManager();
             }
         }
+
+        private void PositionSet_Click(object sender, System.EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(PositionBox.Text))
+            {
+                var succeed = int.TryParse(PositionBox.Text, out int result);
+                TransportControls?.SeekTo(succeed ? result : 0);
+            }
+        }
+
         private void RequestReBind()
         {
             if(Build.VERSION.SdkInt >= BuildVersionCodes.N)
