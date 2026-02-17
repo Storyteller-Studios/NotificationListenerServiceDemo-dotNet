@@ -157,12 +157,6 @@ namespace NotificationListener_MAUI
             Controller?.Dispose();
             TransportControls?.Dispose();
             UnregisterReceiver(Receiver);
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.N)
-            {
-#pragma warning disable CA1416 // 验证平台兼容性
-                NotificationListenerService.RequestUnbind(NotificationListenerServiceComponentName!);
-#pragma warning restore CA1416 // 验证平台兼容性
-            }
             Controller = null;
             TransportControls = null;
             MediaSessionInstance.Instance = null;
