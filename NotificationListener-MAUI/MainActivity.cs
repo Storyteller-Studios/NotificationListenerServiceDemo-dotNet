@@ -12,21 +12,23 @@ using Android.Support.V4.App;
 namespace NotificationListener_MAUI
 {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
-    public class MainActivity : Activity, IMediaSessionTransportationCallback
+    public class MainActivity : Activity, IMediaSessionTransportationCallback, ISpotifyBroadcastCallback
     {
+        Timer SessionTimer = new Timer() { AutoReset = true, Enabled = true, Interval = 100 };
         TextView? StatusView;
         TextView? Position;
         TextView? SongName;
         TextView? Artist;
         TextView? Duration;
+        TextView? Url;
         Button? MoveNext;
         Button? MovePrevious;
         Button? PausePlay;
         Button? PositionSet;
         EditText? PositionBox;
         MediaController? Controller;
+        SpotifyBroadcastReceiver? Receiver;
         MediaController.TransportControls? TransportControls;
-        Timer SessionTimer = new Timer() { AutoReset = true, Enabled = true, Interval = 100 };
         MediaCallback MediaCallback = new MediaCallback();
         ComponentName? NotificationListenerServiceComponentName;
         protected override void OnCreate(Bundle? savedInstanceState)
@@ -40,6 +42,7 @@ namespace NotificationListener_MAUI
             Artist = FindViewById<TextView>(Resource.Id.Artist);
             Duration = FindViewById<TextView>(Resource.Id.Duration);
             Position = FindViewById<TextView>(Resource.Id.Position);
+            Url = FindViewById<TextView>(Resource.Id.Url);
             MoveNext = FindViewById<Button>(Resource.Id.MoveNext);
             MovePrevious = FindViewById<Button>(Resource.Id.MovePrevious);
             PausePlay = FindViewById<Button>(Resource.Id.PausePlay);
@@ -50,6 +53,10 @@ namespace NotificationListener_MAUI
             PausePlay!.Click += PausePlay_Click;
             PositionSet!.Click += PositionSet_Click;
             MediaSessionInstance.Instance = this;
+            SpotifyBroadcastCallbackInstance.Instance = this;
+            Receiver = new SpotifyBroadcastReceiver();
+            RegisterReceiver(Receiver, new IntentFilter("com.spotify.music.metadatachanged"));
+            RegisterReceiver(Receiver, new IntentFilter("com.spotify.music.playbackstatechanged"));
             var permitted = NotificationManagerCompat.GetEnabledListenerPackages(this).Contains(PackageName!);
             if (!permitted)
             {
@@ -111,22 +118,6 @@ namespace NotificationListener_MAUI
             TransportControls?.SkipToNext();
         }
 
-        private void SessionTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            try
-            {
-                if (Controller?.PlaybackState?.State == PlaybackStateCode.Playing)
-                {
-
-                    Position!.Text = Controller.PlaybackState.Position.ToString();
-                }
-
-            }
-            catch
-            {
-                // Ignore
-            }
-        }
         private void CreateSessionFromMediaSessionManager()
         {
             var manager = (MediaSessionManager)GetSystemService(MediaSessionService)!;
@@ -143,16 +134,39 @@ namespace NotificationListener_MAUI
                 Position!.Text = "Unknown";
             }
         }
+        private void SessionTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                if (Controller?.PlaybackState?.State == PlaybackStateCode.Playing)
+                {
 
+                    Position!.Text = Controller.PlaybackState.Position.ToString();
+                }
+
+            }
+            catch
+            {
+                // Ignore
+            }
+        }
         protected override void OnDestroy()
         {
             base.OnDestroy();
             Controller?.UnregisterCallback(MediaCallback);
             Controller?.Dispose();
             TransportControls?.Dispose();
+            UnregisterReceiver(Receiver);
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.N)
+            {
+#pragma warning disable CA1416 // 验证平台兼容性
+                NotificationListenerService.RequestUnbind(NotificationListenerServiceComponentName!);
+#pragma warning restore CA1416 // 验证平台兼容性
+            }
             Controller = null;
             TransportControls = null;
             MediaSessionInstance.Instance = null;
+            SpotifyBroadcastCallbackInstance.Instance = null;
         }
         public void OnMediaSessionCreated(MediaSession.Token token)
         {
@@ -213,81 +227,23 @@ namespace NotificationListener_MAUI
             Controller = null;
             TransportControls = null;
         }
-    }
-    [Service(Label = "NotificationListener", Permission = "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE", Exported = true)]
-    [IntentFilter(new[] { "android.service.notification.NotificationListenerService" })]
-    public class NotificationListener : NotificationListenerService
-    {
-        public static readonly Class MediaSessionClass = Class.FromType(typeof(MediaSession.Token));
-        public static readonly Class NotificationListenerClass = Class.FromType(typeof(NotificationListener));
-        public override void OnNotificationPosted(StatusBarNotification? sbn)
+
+        public void OnPlaybackStatusChanged(PlaybackStatus status)
         {
-            base.OnNotificationPosted(sbn);
-            if (sbn?.PackageName == "com.spotify.music")
+            if (status.Playing ?? false)
             {
-                var notification = sbn.Notification;
-                IParcelable? parcel;
-                if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
-                {
-#pragma warning disable CA1416 // 验证平台兼容性
-                    parcel = (IParcelable?)notification?.Extras?.GetParcelable(Notification.ExtraMediaSession, MediaSessionClass);
-#pragma warning restore CA1416 // 验证平台兼容性
-                }
-                else
-                {
-#pragma warning disable CA1422 // 验证平台兼容性
-                    parcel = (IParcelable?)notification?.Extras?.GetParcelable(Notification.ExtraMediaSession);
-#pragma warning restore CA1422 // 验证平台兼容性
-                }
-                if (parcel != null)
-                {
-                    var result = (MediaSession.Token)parcel;
-                    MediaSessionInstance.Instance?.OnMediaSessionCreated(result);
-                }
+                SessionTimer?.Start();
+            }
+            else
+            {
+                SessionTimer?.Stop();
+                Position!.Text = status.Position?.ToString();
             }
         }
-        public override void OnListenerConnected()
+
+        public void OnMetadataChanged(Metadata metadata)
         {
-            base.OnListenerConnected();
-            MediaSessionInstance.Instance?.OnListenerConnected();
-        }
-        public override void OnListenerDisconnected()
-        {
-#pragma warning disable CA1416 // 验证平台兼容性
-            base.OnListenerDisconnected();
-#pragma warning restore CA1416 // 验证平台兼容性
-            MediaSessionInstance.Instance?.OnListenerDisconnected();
-        }
-    }
-    public interface IMediaSessionTransportationCallback
-    {
-        void OnListenerConnected();
-        void OnListenerDisconnected();
-        void OnMediaSessionCreated(MediaSession.Token token);
-        void OnMetadataChanged(MediaMetadata? metadata);
-        void OnMediaPlaybackStateChanged(PlaybackState? state);
-        void OnSessionDestroyed();
-    }
-    public static class MediaSessionInstance
-    {
-        public static IMediaSessionTransportationCallback? Instance;
-    }
-    public class MediaCallback : MediaController.Callback
-    {
-        public override void OnMetadataChanged(MediaMetadata? metadata)
-        {
-            base.OnMetadataChanged(metadata);
-            MediaSessionInstance.Instance?.OnMetadataChanged(metadata);
-        }
-        public override void OnPlaybackStateChanged(PlaybackState? state)
-        {
-            base.OnPlaybackStateChanged(state);
-            MediaSessionInstance.Instance?.OnMediaPlaybackStateChanged(state);
-        }
-        public override void OnSessionDestroyed()
-        {
-            base.OnSessionDestroyed();
-            MediaSessionInstance.Instance?.OnSessionDestroyed();
+            Url!.Text = metadata?.Id;
         }
     }
 }

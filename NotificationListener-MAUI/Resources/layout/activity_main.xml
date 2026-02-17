@@ -30,6 +30,11 @@
             android:layout_height="wrap_content"
             android:id="@+id/Position"
         android:text="Position"/>
+	<TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/Url"
+        android:text="Url"/>
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

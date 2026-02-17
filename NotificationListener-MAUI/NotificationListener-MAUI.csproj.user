@@ -2,9 +2,9 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <AndroidDesignerPreferredDevice>pixel_2_xl</AndroidDesignerPreferredDevice>
-    <SelectedDevice>OnePlus KB2000</SelectedDevice>
+    <SelectedDevice>Google Pixel 3a</SelectedDevice>
     <SelectedPlatformGroup>PhysicalDevice</SelectedPlatformGroup>
-    <ActiveDebugProfile>OnePlus KB2000 (Android 14.0 - API 34)</ActiveDebugProfile>
+    <ActiveDebugProfile>Google Pixel 3a (Android 12.1 - API 32)</ActiveDebugProfile>
     <AndroidDesignerPreferredTheme>AppTheme</AndroidDesignerPreferredTheme>
   </PropertyGroup>
 </Project>
